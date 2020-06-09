@@ -1,0 +1,13 @@
+{
+	"DBhost":     			"192.168.1.110",
+	"DBusr":      			"postgres",
+	"DBpw":       			"4h9OAtjWVL7k",
+	"DBPort":     			"5432",
+	"DBName":     			"dam",	
+	"MirrorCkmPath":        "/opt/ckm-mirror/local",
+	"ChangesetPath":        "/mnt/apptest01/DEV",
+	"WorkingFolderPath":	"downloads/whereused",
+	"ListenPort":			"10091",
+	"DebugLogging":			"Yes",
+	"CachingEnabled":		"Yes"
+}

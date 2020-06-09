@@ -1,0 +1,21 @@
+@startuml Important Asset Flagging
+
+actor "Editor" as editor
+participant "inotify subsystem" as inotifywait
+participant "DAMActivityLocal" as dal
+
+database activity_local
+database damasset
+
+skinparam {
+     monochrome true
+    sequenceArrowThickness 2
+    ActorBackgroundColor white
+    ParticipantBorderColor black 
+    ParticipantBackgroundColor white 
+} 
+listener->inotifywait: register hook
+
+@enduml
+
+
