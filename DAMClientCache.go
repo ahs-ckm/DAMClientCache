@@ -3,35 +3,24 @@ package main
 // DAM Client Cache Manager
 // May 2020: JB
 //
-//
 
 import (
 	"archive/zip"
 	"fmt"
 	"io"
 	"os"
-
 	"bufio"
 	"bytes"
-
-	//"net/url"
 	"strconv"
 	"context"
 	"database/sql"
-
-	//	"io/ioutil"
-
 	"log"
 	"net/http"
-
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
-
-	//	"github.com/hashicorp/go-retryablehttp" // http client lib
 	"github.com/Tkanos/gonfig" // config management support
-	//	"github.com/beevik/etree"  // xml lib
 	"github.com/lib/pq" // golang postgres db driver
 )
 
@@ -443,24 +432,6 @@ func buildAndSendArchive(w http.ResponseWriter, r *http.Request, ticket string) 
 	io.Copy(w, Openfile) //'Copy' the file to the client		
 }
 
-// func main() {
-
-//     // List of Files to Zip
-//     files := []string{"example.csv", "data.csv"}
-//     output := "done.zip"
-
-//     if err := ZipFiles(output, files); err != nil {
-//         panic(err)
-//     }
-//     fmt.Println("Zipped File:", output)
-// }
-
-
-
-
-
-
-
 // Unzip will decompress a zip archive, moving all files and folders
 // within the zip file (parameter 1) to an output directory (parameter 2).
 func Unzip(src string, dest string) ([]string, error) {
@@ -518,10 +489,6 @@ func Unzip(src string, dest string) ([]string, error) {
     }
     return filenames, nil
 }
-
-
-
-
 
 
 // ZipFiles compresses one or many files into a single zip archive file.
