@@ -268,7 +268,6 @@ func createArchive(ticketdir string) string {
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 
 		if strings.Contains(path, "downloads") {
-			//return nil;
 			return filepath.SkipDir
 		}
 
@@ -281,15 +280,11 @@ func createArchive(ticketdir string) string {
 	if err != nil {
 		panic(err)
 	}
-	//    files := []string{"testdir/2/employee.xml", "testdir/1/Drinks Menu.oet"}
+
 	uid := nowAsUnixMilli()
 	output := fmt.Sprintf( "%s/%s/downloads/%d-precache.zip", sessionConfig.ChangesetPath, ticketdir, uid)
 
-
-	//output :=  sessionConfig.ChangesetPath + "/" + ticketdir + "/downloads/" + "precache-" + ticketdir + ".zip"
-
 	if err := zipFiles(output, files); err != nil {
-//		panic(err)
 		logMessage( "zipFiles(): " + err.Error(), ticketdir, "ERROR")
 	}
 	fmt.Println("Zipped File:", output)
