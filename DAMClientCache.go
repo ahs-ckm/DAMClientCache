@@ -22,6 +22,7 @@ import (
 	"time"
 	"github.com/Tkanos/gonfig" // config management support
 	"github.com/lib/pq" // golang postgres db driver
+	"syscall"
 )
 
 //-----------------------------------------------------------------------------------------------//-----------------------------------------------------------------------------------------------
@@ -335,6 +336,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 func unzipWrapper(zipfile string, outputdir string) (string, string) {
 	println( "unzipWrapper : " + zipfile + ", " + outputdir)
 
+	syscall.Umask(0002)
+
 	cmd := exec.Command("unzip", "-o", zipfile, "-d", outputdir )
 
 	var outbuf, errbuf bytes.Buffer
@@ -344,6 +347,9 @@ func unzipWrapper(zipfile string, outputdir string) (string, string) {
 
 	stdout := outbuf.String()
 	stderr := errbuf.String()	
+
+
+
 	return stdout, stderr
 }
 
