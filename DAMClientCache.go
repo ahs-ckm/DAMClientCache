@@ -375,6 +375,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		}
 
+		if strings.Contains(r.URL.Path, "transform_support") {
+			
+			buildAndSendSupport(  w,r )
+		}
+
 		if strings.Contains(r.URL.Path, "remove") {
 			params := strings.Split(r.RequestURI, ",")
 
@@ -395,6 +400,46 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+func buildAndSendSupport(w http.ResponseWriter, r *http.Request) {
+	
+	Filename :="/opt/ckm-mirror/transform-support.zip";
+
+	//Check if file exists and open
+	Openfile, err := os.Open(Filename)
+	defer Openfile.Close() //Close after function return
+	if err != nil {
+		//File not found, send 404
+		http.Error(w, "File not found.", 404)
+		return
+	}
+
+	//File is found, create and send the correct headers
+
+	//Get the Content-Type of the file
+	//Create a buffer to store the header of the file in
+	FileHeader := make([]byte, 512)
+	//Copy the headers into the FileHeader buffer
+	Openfile.Read(FileHeader)
+	//Get content type of file
+	FileContentType := http.DetectContentType(FileHeader)
+
+	//Get the file size
+	FileStat, _ := Openfile.Stat()                     //Get info from file
+	FileSize := strconv.FormatInt(FileStat.Size(), 10) //Get file size as a string
+
+	//Send the headers
+	w.Header().Set("Content-Disposition", "attachment; filename="+Filename)
+	w.Header().Set("Content-Type", FileContentType)
+	w.Header().Set("Content-Length", FileSize)
+
+	//Send the file
+	//We read 512 bytes from the file already, so we reset the offset back to 0
+	Openfile.Seek(0, 0)
+	io.Copy(w, Openfile) //'Copy' the file to the client	
+
+}
+
 
 func buildAndSendArchive(w http.ResponseWriter, r *http.Request, ticket string) {
 	Filename := createArchive(ticket)
