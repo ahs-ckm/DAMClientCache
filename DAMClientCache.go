@@ -394,12 +394,46 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 			// }
 		}
+
+		if strings.Contains(r.URL.Path, "templatebyid") { 
+			params := strings.Split(r.RequestURI, ",")
+
+			if len(params) < 1 {
+				return
+			}			
+			var sTemplateID = params[1]
+			queryTemplateByID( w, sTemplateID )
+		}
+		
 	case "POST": 
 		if strings.Contains(r.URL.Path, "/upload") {
 			uploadHandler( w, r)
 		}
 	}
 }
+
+func queryTemplateByID(w http.ResponseWriter, sTemplateID string)  {
+
+	var sfilepath = ""
+
+	sql := `select filepath from mirrorstate where templateid = $1`
+	rows, err := db.Query(sql, sTemplateID)
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			printMessage("[DAL] pq ERROR:", err.Code.Name())
+			logMessage("queryTemplateByID() couldn't SELECT from mirrorstate :"+err.Code.Name(), "", "ERROR")
+		}
+		return 
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(
+		&sfilepath,
+	)}
+
+	w.Write( []byte(sfilepath))
+}
+	
 
 func buildAndSendSupport(w http.ResponseWriter, r *http.Request) {
 	

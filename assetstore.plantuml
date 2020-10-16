@@ -1,0 +1,89 @@
+@startuml Importadb Asset Flagging
+
+actor "Editor" as editor
+
+participant "DAM Dashboard" as dam
+participant "DAM Scheduler" as schedule
+participant "DAMBuddy2" as db
+participant "Template Designer" as td
+participant "DAMCache" as cs
+
+
+
+database ticket_folder 
+database remote_git
+database damasset
+
+skinparam {
+     monochrome true
+    sequenceArrowThickness 2
+    ActorBackgroundColor white
+    ParticipantBorderColor black 
+    ParticipantBackgroundColor white 
+} 
+
+editor->dam: link ticket
+editor->dam: launch TD on new ticket
+dam->db: start (via .damconf file association)
+note left: work on new ticket
+db->ticket_folder: initialize folder
+remote_git->ticket_folder: clone/update repository (~5mins) [Threaded]
+db->dam: check for updates
+db->dam: download updates
+db->td: discover config files
+db->dam: sync annotation sets
+db->td: store annotation set
+
+
+
+ticket_folder->db: read all assets (no ckm status)
+db->td: launch td on new ticket
+db->cs: get transform support files
+editor->db: filter and view assets * (no search in content)
+editor->db: mark assets un/important (new method)
+db->cs: add important assets 
+cs->damasset: add rows for important assets
+db->schedule: read overlaps
+editor->db: view overlap/clashes
+editor->db: schedule change
+db->schedule: set ready [ticket]
+schedule->db: in-progress
+db->ticket_folder: remove r/o status on important assets
+editor->td: make changes to assets
+td->ticket_folder: store changes
+
+db->db: [timer event] check for updates
+note left: this event would be every 1-2 mins
+note right: in theory, no updates from remote should conflict with\n work in progress - unless emergency changes happen
+remote_git->ticket_folder: update repository (~30 secs) [Threaded]
+editor->td: close
+db->dam: upload changed assets to ticket (check md5/mod time)
+db->dam: start ckm upload
+dam->db: provide upload summary page
+db->db: display upload summary page
+editor->db: confirm upload
+db->dam: process ckm upload
+dam->db: display progress page
+editor->db: close
+db->db: backup?
+
+
+
+editor->dam: launch td on existing ticket
+dam->db: start (via .damconf file association)
+note left #FFAAAA: work on existing ticket
+
+db->ticket_folder: open existing folder
+remote_git->ticket_folder: update repository (~30 secs) [Threaded]
+db->dam: check for updates
+db->dam: download updates
+db->td: discover config files
+db->dam: sync annotation sets
+db->td: store annotation set
+
+
+
+
+@enduml
+
+
