@@ -293,18 +293,12 @@ func createArchive(ticketdir string) string {
 }
 
 
-func WIPHandler(w http.ResponseWriter, r *http.Request) {
+func wipHandler(w http.ResponseWriter, r *http.Request) {
 	// get the ticket directory from the request
 
-	params := strings.Split(r.RequestURI, ",")
-
-	if len(params) < 1 {
-		return
-	}
-
-	theFolder := params[1]
-	theTemplateID := params[1]
-	theTemplateName := params[2]
+	theFolder := r.FormValue("theFolder")
+	theTemplateID := r.FormValue("theTemplateID")
+	theTemplateName :=  r.FormValue("theTemplateName")
 
 	theFilePath := ""
 	theHash := ""
@@ -469,12 +463,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		
 	case "POST": 
+		if err := r.ParseForm(); err != nil {
+			fmt.Fprintf(w, "ParseForm() err: %v", err)
+			return
+		}	
+		
 		if strings.Contains(r.URL.Path, "/upload") {
 			uploadHandler( w, r)
 		}
 
 		if strings.Contains(r.URL.Path, "/WIP") {
-			WIPHandler( w, r)
+			wipHandler( w, r)
 		}
 
 	}
