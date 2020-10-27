@@ -300,7 +300,7 @@ func wipHandler(w http.ResponseWriter, r *http.Request) {
 	theTemplateID := r.FormValue("theTemplateID")
 	theTemplateName :=  r.FormValue("theTemplateName")
 
-	theFilePath := ""
+	theFilePath := theFolder + "\\" + theTemplateName
 	theHash := ""
 
 	sqlStatement := `
@@ -467,7 +467,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "ParseForm() err: %v", err)
 			return
 		}	
-		
+
 		if strings.Contains(r.URL.Path, "/upload") {
 			uploadHandler( w, r)
 		}
