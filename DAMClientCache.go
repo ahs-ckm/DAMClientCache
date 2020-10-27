@@ -292,6 +292,40 @@ func createArchive(ticketdir string) string {
 	return output
 }
 
+
+func WIPHandler(w http.ResponseWriter, r *http.Request) {
+	// get the ticket directory from the request
+
+	params := strings.Split(r.RequestURI, ",")
+
+	if len(params) < 1 {
+		return
+	}
+
+	theFolder := params[1]
+	theTemplateID := params[1]
+	theTemplateName := params[2]
+
+	theFilePath := ""
+	theHash := ""
+
+	sqlStatement := `
+		INSERT INTO public.damasset
+		(      fullfilepath, filename, resourcemainid, initialmd5, initialversion, modified, islatest,  created, updated, importanttouser, folder)
+		VALUES(   $2,            $3,              $4,            $5,         0,        $8,     true,      $6,      $7,      $9,              $1);	`
+
+	_, err := db.Exec(sqlStatement, theFolder, theFilePath, theTemplateName, theTemplateID, theHash, time.Now(), time.Now(), false, 1)
+	if err, ok := err.(*pq.Error); ok {
+		printMessage("[DAL] pq ERROR:", err.Code.Name())
+		logMessage("WIPHandler() couldn't INSERT into damasset :"+err.Code.Name(), theFolder, "ERROR")
+		http.Error(w, "WIPHandler() couldn't INSERT into damasset :"+err.Code.Name(), http.StatusNotModified)
+		return
+	}
+
+	
+
+}
+
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get the ticket directory from the request
@@ -328,6 +362,35 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if( err != nil) {
 		logMessage(err.Error(), ticket, "ERROR")
 	}
+
+}
+
+func getTemplateID(filepath string) string {
+
+	templateID := ""
+	file, err := os.Open(filepath)
+	if err != nil {
+		logMessage("getTemplateID os.Open() failed : "+err.Error(), "", "ERROR")
+		return templateID
+	}
+
+	lines, err := readFile(file)
+	if err != nil {
+		logMessage("getTemplateID readFile() failed : "+err.Error(), "", "ERROR")
+		return templateID
+	}
+	content := strings.Join(lines, " ")
+	splits := strings.Split(strings.ToLower(content), "<id>")
+	if len(splits) > 1 {
+		templateID = (splits[1])[0:36] // TODO: HACK: assumes id format is fixed....
+	}
+	defer file.Close()
+
+	return templateID
+
+}
+
+func RemoveHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
@@ -409,6 +472,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/upload") {
 			uploadHandler( w, r)
 		}
+
+		if strings.Contains(r.URL.Path, "/WIP") {
+			WIPHandler( w, r)
+		}
+
 	}
 }
 
