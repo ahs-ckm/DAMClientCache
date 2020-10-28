@@ -293,6 +293,30 @@ func createArchive(ticketdir string) string {
 }
 
 
+func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
+	theFolder := r.FormValue("theFolder")
+	theTemplateID := r.FormValue("theTemplateID")
+	
+	//theFilePath := theFolder + "\\" + theTemplateName
+	//theHash := ""
+
+	sqlStatement := `
+		DELETE FROM public.damasset WHERE folder = $1 AND resourcemainid = $2`
+
+
+	_, err := db.Exec(sqlStatement, theFolder, theTemplateID)
+	if err, ok := err.(*pq.Error); ok {
+		printMessage("[DAL] pq ERROR:", err.Code.Name())
+		logMessage("wipRemoveHandler() couldn't DELETE from damasset :"+err.Code.Name(), theFolder, "ERROR")
+		http.Error(w, "wipRemoveHandler() couldn't DELETE from damasset :"+err.Code.Name(), http.StatusNotModified)
+		return
+	}
+
+	
+
+}
+
+
 func wipHandler(w http.ResponseWriter, r *http.Request) {
 	// get the ticket directory from the request
 
@@ -384,11 +408,6 @@ func getTemplateID(filepath string) string {
 
 }
 
-func RemoveHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-
 // wrapper around linux unzip utility
 func unzipWrapper(zipfile string, outputdir string) (string, string) {
 	println( "unzipWrapper : " + zipfile + ", " + outputdir)
@@ -471,6 +490,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/upload") {
 			uploadHandler( w, r)
 		}
+
+		
+		if strings.Contains(r.URL.Path, "/RemoveWIP") {
+			wipRemoveHandler( w, r)
+		}
+
 
 		if strings.Contains(r.URL.Path, "/WIP") {
 			wipHandler( w, r)
