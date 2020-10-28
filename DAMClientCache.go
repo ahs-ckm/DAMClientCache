@@ -298,10 +298,10 @@ func readyHandler(w http.ResponseWriter, r *http.Request) {
 	theState := r.FormValue("theState")
 	theFolder := r.FormValue("theFolder")
 
-	var bool bReady = true
+	bReady := true
 
 	if theState != "ready" {
-		bReady = true
+		bReady = false
 	}
 
 	sqlStatement := `
