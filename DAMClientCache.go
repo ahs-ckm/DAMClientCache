@@ -347,8 +347,8 @@ func wipHandler(w http.ResponseWriter, r *http.Request) {
 	theFolder := r.FormValue("theFolder")
 	theTemplateID := r.FormValue("theTemplateID")
 	theTemplateName := r.FormValue("theTemplateName")
+	theFilePath := sessionConfig.ChangesetPath + "\\" + theFolder + "\\" + theTemplateName
 
-	theFilePath := theFolder + "\\" + theTemplateName
 	theHash := ""
 
 	sqlStatement := `
