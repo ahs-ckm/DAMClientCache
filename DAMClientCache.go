@@ -6,23 +6,24 @@ package main
 
 import (
 	"archive/zip"
-	"fmt"
-	"io"
-	"os"
 	"bufio"
 	"bytes"
-	"strconv"
 	"context"
 	"database/sql"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
-	"time"
-	"github.com/Tkanos/gonfig" // config management support
-	"github.com/lib/pq" // golang postgres db driver
 	"syscall"
+	"time"
+
+	"github.com/Tkanos/gonfig" // config management support
+	"github.com/lib/pq"        // golang postgres db driver
 )
 
 //-----------------------------------------------------------------------------------------------//-----------------------------------------------------------------------------------------------
@@ -47,7 +48,7 @@ type configuration struct {
 	ChangesetPath     string
 	MirrorCkmPath     string
 	CachingEnabled    string
-	DebugLogging	  string
+	DebugLogging      string
 }
 
 func printMessage(a ...interface{}) {
@@ -136,7 +137,7 @@ func logMessage(message, ticket, logtype string) error {
 
 	if logtype == "ERROR " {
 		//logFileMessage(message, ticket, logtype)
-		println( message )
+		println(message)
 	}
 
 	sqlStatement := `
@@ -163,7 +164,7 @@ func initDb() {
 
 	db, err = sql.Open("postgres", psqlInfo)
 	if err != nil {
-		printMessage("[DAL] ERROR not connected to DB!")
+		printMessage("[DCC] ERROR not connected to DB!")
 
 		panic(err)
 
@@ -171,7 +172,7 @@ func initDb() {
 	err = db.Ping()
 	if err != nil {
 
-		printMessage("[DAL] ERROR not connected [ping] to DB!")
+		printMessage("[DCC] ERROR not connected [ping] to DB!")
 		panic(err)
 
 	}
@@ -259,7 +260,7 @@ func main() {
 	}
 }
 func nowAsUnixMilli() int64 {
-    return time.Now().UnixNano() / 1e6
+	return time.Now().UnixNano() / 1e6
 }
 func createArchive(ticketdir string) string {
 	// List of Files to Zip
@@ -283,46 +284,69 @@ func createArchive(ticketdir string) string {
 	}
 
 	uid := nowAsUnixMilli()
-	output := fmt.Sprintf( "%s/%s/downloads/%d-precache.zip", sessionConfig.ChangesetPath, ticketdir, uid)
+	output := fmt.Sprintf("%s/%s/downloads/%d-precache.zip", sessionConfig.ChangesetPath, ticketdir, uid)
 
 	if err := zipFiles(output, files); err != nil {
-		logMessage( "zipFiles(): " + err.Error(), ticketdir, "ERROR")
+		logMessage("zipFiles(): "+err.Error(), ticketdir, "ERROR")
 	}
 	fmt.Println("Zipped File:", output)
 	return output
 }
 
+func readyHandler(w http.ResponseWriter, r *http.Request) {
+
+	theState := r.FormValue("theState")
+	theFolder := r.FormValue("theFolder")
+
+	var bool bReady = true
+
+	if theState != "ready" {
+		bReady = true
+	}
+
+	sqlStatement := `
+		update "change" ch 
+		set state_ready = $1 
+		from damfolder df
+		where df.jirakey = ch.jirakey
+		and df.folder = $2`
+
+	_, err := db.Exec(sqlStatement, bReady, theFolder)
+	if err, ok := err.(*pq.Error); ok {
+		printMessage("[DCC] pq ERROR:", err.Code.Name())
+		logMessage("readyHandler() couldn't UPDATE change :"+err.Code.Name(), theFolder, "ERROR")
+		http.Error(w, "readyHandler() couldn't UPDATE change :"+err.Code.Name(), http.StatusNotModified)
+		return
+	}
+
+}
 
 func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	theFolder := r.FormValue("theFolder")
 	theTemplateID := r.FormValue("theTemplateID")
-	
+
 	//theFilePath := theFolder + "\\" + theTemplateName
 	//theHash := ""
 
 	sqlStatement := `
 		DELETE FROM public.damasset WHERE folder = $1 AND resourcemainid = $2`
 
-
 	_, err := db.Exec(sqlStatement, theFolder, theTemplateID)
 	if err, ok := err.(*pq.Error); ok {
-		printMessage("[DAL] pq ERROR:", err.Code.Name())
+		printMessage("[DCC] pq ERROR:", err.Code.Name())
 		logMessage("wipRemoveHandler() couldn't DELETE from damasset :"+err.Code.Name(), theFolder, "ERROR")
 		http.Error(w, "wipRemoveHandler() couldn't DELETE from damasset :"+err.Code.Name(), http.StatusNotModified)
 		return
 	}
 
-	
-
 }
-
 
 func wipHandler(w http.ResponseWriter, r *http.Request) {
 	// get the ticket directory from the request
 
 	theFolder := r.FormValue("theFolder")
 	theTemplateID := r.FormValue("theTemplateID")
-	theTemplateName :=  r.FormValue("theTemplateName")
+	theTemplateName := r.FormValue("theTemplateName")
 
 	theFilePath := theFolder + "\\" + theTemplateName
 	theHash := ""
@@ -334,13 +358,11 @@ func wipHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec(sqlStatement, theFolder, theFilePath, theTemplateName, theTemplateID, theHash, time.Now(), time.Now(), false, 1)
 	if err, ok := err.(*pq.Error); ok {
-		printMessage("[DAL] pq ERROR:", err.Code.Name())
+		printMessage("[DCC] pq ERROR:", err.Code.Name())
 		logMessage("WIPHandler() couldn't INSERT into damasset :"+err.Code.Name(), theFolder, "ERROR")
 		http.Error(w, "WIPHandler() couldn't INSERT into damasset :"+err.Code.Name(), http.StatusNotModified)
 		return
 	}
-
-	
 
 }
 
@@ -357,27 +379,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	ticket := params[1]
 	uid := nowAsUnixMilli()
 	//filename := fmt.Sprintf( "./%s-%d.zip", ticket, uid)
-	filename :=fmt.Sprintf( "%s/%s/downloads/%d-postcache.zip", sessionConfig.ChangesetPath, ticket, uid)
-	file, err := os.Create( filename )
+	filename := fmt.Sprintf("%s/%s/downloads/%d-postcache.zip", sessionConfig.ChangesetPath, ticket, uid)
+	file, err := os.Create(filename)
 
 	if err != nil {
 		logMessage(err.Error(), ticket, "ERROR")
 	}
 	n, err := io.Copy(file, r.Body)
 	if err != nil {
-		logMessage("[DCC] uploadHandler(): " + err.Error(), ticket, "ERROR")
+		logMessage("[DCC] uploadHandler(): "+err.Error(), ticket, "ERROR")
 	}
 
 	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
 
 	//_, err = Unzip( filename, sessionConfig.ChangesetPath + "/" + ticket + "/")
 
-	stdout, stderr := unzipWrapper( filename,sessionConfig.ChangesetPath + "/" + ticket + "/")
+	stdout, stderr := unzipWrapper(filename, sessionConfig.ChangesetPath+"/"+ticket+"/")
 
-	println( "stdout " + stdout )
-	println( "stderr " + stderr )	
+	println("stdout " + stdout)
+	println("stderr " + stderr)
 
-	if( err != nil) {
+	if err != nil {
 		logMessage(err.Error(), ticket, "ERROR")
 	}
 
@@ -410,11 +432,11 @@ func getTemplateID(filepath string) string {
 
 // wrapper around linux unzip utility
 func unzipWrapper(zipfile string, outputdir string) (string, string) {
-	println( "unzipWrapper : " + zipfile + ", " + outputdir)
+	println("unzipWrapper : " + zipfile + ", " + outputdir)
 
 	syscall.Umask(0002)
 
-	cmd := exec.Command("unzip", "-o", zipfile, "-d", outputdir )
+	cmd := exec.Command("unzip", "-o", zipfile, "-d", outputdir)
 
 	var outbuf, errbuf bytes.Buffer
 	cmd.Stdout = &outbuf
@@ -422,9 +444,7 @@ func unzipWrapper(zipfile string, outputdir string) (string, string) {
 	cmd.Run()
 
 	stdout := outbuf.String()
-	stderr := errbuf.String()	
-
-
+	stderr := errbuf.String()
 
 	return stdout, stderr
 }
@@ -435,7 +455,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		if strings.Contains(r.URL.Path, "isCachingEnabled") {
 
-			w.Write( []byte(sessionConfig.CachingEnabled ) )
+			w.Write([]byte(sessionConfig.CachingEnabled))
 			return
 		}
 
@@ -447,13 +467,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ticket := params[1]
-			buildAndSendArchive(  w,r, ticket)
+			buildAndSendArchive(w, r, ticket)
 
 		}
 
 		if strings.Contains(r.URL.Path, "transform_support") {
-			
-			buildAndSendSupport(  w,r )
+
+			buildAndSendSupport(w, r)
 		}
 
 		if strings.Contains(r.URL.Path, "remove") {
@@ -471,40 +491,42 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			// }
 		}
 
-		if strings.Contains(r.URL.Path, "templatebyid") { 
+		if strings.Contains(r.URL.Path, "templatebyid") {
 			params := strings.Split(r.RequestURI, ",")
 
 			if len(params) < 1 {
 				return
-			}			
+			}
 			var sTemplateID = params[1]
-			queryTemplateByID( w, sTemplateID )
+			queryTemplateByID(w, sTemplateID)
 		}
-		
-	case "POST": 
+
+	case "POST":
 		if err := r.ParseForm(); err != nil {
 			fmt.Fprintf(w, "ParseForm() err: %v", err)
 			return
-		}	
+		}
 
 		if strings.Contains(r.URL.Path, "/upload") {
-			uploadHandler( w, r)
+			uploadHandler(w, r)
 		}
 
-		
 		if strings.Contains(r.URL.Path, "/RemoveWIP") {
-			wipRemoveHandler( w, r)
+			wipRemoveHandler(w, r)
 		}
-
 
 		if strings.Contains(r.URL.Path, "/WIP") {
-			wipHandler( w, r)
+			wipHandler(w, r)
+		}
+
+		if strings.Contains(r.URL.Path, "/ready") {
+			readyHandler(w, r)
 		}
 
 	}
 }
 
-func queryTemplateByID(w http.ResponseWriter, sTemplateID string)  {
+func queryTemplateByID(w http.ResponseWriter, sTemplateID string) {
 
 	var sfilepath = ""
 
@@ -512,24 +534,24 @@ func queryTemplateByID(w http.ResponseWriter, sTemplateID string)  {
 	rows, err := db.Query(sql, sTemplateID)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
-			printMessage("[DAL] pq ERROR:", err.Code.Name())
+			printMessage("[DCC] pq ERROR:", err.Code.Name())
 			logMessage("queryTemplateByID() couldn't SELECT from mirrorstate :"+err.Code.Name(), "", "ERROR")
 		}
-		return 
+		return
 	}
 	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(
-		&sfilepath,
-	)}
+			&sfilepath,
+		)
+	}
 
-	w.Write( []byte(sfilepath))
+	w.Write([]byte(sfilepath))
 }
-	
 
 func buildAndSendSupport(w http.ResponseWriter, r *http.Request) {
-	
-	Filename :="/opt/ckm-mirror/transform-support.zip";
+
+	Filename := "/opt/ckm-mirror/transform-support.zip"
 
 	//Check if file exists and open
 	Openfile, err := os.Open(Filename)
@@ -562,10 +584,9 @@ func buildAndSendSupport(w http.ResponseWriter, r *http.Request) {
 	//Send the file
 	//We read 512 bytes from the file already, so we reset the offset back to 0
 	Openfile.Seek(0, 0)
-	io.Copy(w, Openfile) //'Copy' the file to the client	
+	io.Copy(w, Openfile) //'Copy' the file to the client
 
 }
-
 
 func buildAndSendArchive(w http.ResponseWriter, r *http.Request, ticket string) {
 	Filename := createArchive(ticket)
@@ -601,67 +622,66 @@ func buildAndSendArchive(w http.ResponseWriter, r *http.Request, ticket string) 
 	//Send the file
 	//We read 512 bytes from the file already, so we reset the offset back to 0
 	Openfile.Seek(0, 0)
-	io.Copy(w, Openfile) //'Copy' the file to the client		
+	io.Copy(w, Openfile) //'Copy' the file to the client
 }
 
 // Unzip will decompress a zip archive, moving all files and folders
 // within the zip file (parameter 1) to an output directory (parameter 2).
 func Unzip(src string, dest string) ([]string, error) {
 
-    var filenames []string
+	var filenames []string
 
-    r, err := zip.OpenReader(src)
-    if err != nil {
-        return filenames, err
-    }
-    defer r.Close()
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return filenames, err
+	}
+	defer r.Close()
 
-    for _, f := range r.File {
+	for _, f := range r.File {
 
-        // Store filename/path for returning and using later on
-        fpath := filepath.Join(dest, f.Name)
+		// Store filename/path for returning and using later on
+		fpath := filepath.Join(dest, f.Name)
 
-        // Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
-        if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
-            return filenames, fmt.Errorf("%s: illegal file path", fpath)
-        }
+		// Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
+		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return filenames, fmt.Errorf("%s: illegal file path", fpath)
+		}
 
-        filenames = append(filenames, fpath)
+		filenames = append(filenames, fpath)
 
-        if f.FileInfo().IsDir() {
-            // Make Folder
-            os.MkdirAll(fpath, os.ModePerm)
-            continue
-        }
+		if f.FileInfo().IsDir() {
+			// Make Folder
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
 
-        // Make File
-        if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-            return filenames, err
-        }
+		// Make File
+		if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			return filenames, err
+		}
 
-        outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-        if err != nil {
-            return filenames, err
-        }
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return filenames, err
+		}
 
-        rc, err := f.Open()
-        if err != nil {
-            return filenames, err
-        }
+		rc, err := f.Open()
+		if err != nil {
+			return filenames, err
+		}
 
-        _, err = io.Copy(outFile, rc)
+		_, err = io.Copy(outFile, rc)
 
-        // Close the file without defer to close before next iteration of loop
-        outFile.Close()
-        rc.Close()
+		// Close the file without defer to close before next iteration of loop
+		outFile.Close()
+		rc.Close()
 
-        if err != nil {
-            return filenames, err
-        }
-    }
-    return filenames, nil
+		if err != nil {
+			return filenames, err
+		}
+	}
+	return filenames, nil
 }
-
 
 // ZipFiles compresses one or many files into a single zip archive file.
 // Param 1: filename is the output zip file's name.
@@ -707,8 +727,7 @@ func addFileToZip(zipWriter *zip.Writer, filename string) error {
 
 	// Using FileInfoHeader() above only uses the basename of the file. If we want
 	// to preserve the folder structure we can overwrite this with the full path.
-	relfilename, _ := filepath.Rel( sessionConfig.ChangesetPath, filename)
-
+	relfilename, _ := filepath.Rel(sessionConfig.ChangesetPath, filename)
 
 	//header.Name = filename
 	header.Name = relfilename
