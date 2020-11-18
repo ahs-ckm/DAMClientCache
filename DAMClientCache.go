@@ -330,7 +330,7 @@ func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	//theHash := ""
 
 	sql := `select fullfilepath from damasset WHERE folder = $1 AND resourcemainid = $2`
-	rows, err := db.Query(sql, )
+	rows, err := db.Query(sql, theFolder, theTemplateID )
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			printMessage("wipRemoveHandler() ERROR:", err.Code.Name())
