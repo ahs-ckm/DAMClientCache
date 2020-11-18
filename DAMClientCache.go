@@ -324,14 +324,35 @@ func readyHandler(w http.ResponseWriter, r *http.Request) {
 func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	theFolder := r.FormValue("theFolder")
 	theTemplateID := r.FormValue("theTemplateID")
+	theFileToDelete := ""
 
 	//theFilePath := theFolder + "\\" + theTemplateName
 	//theHash := ""
 
+	sql := `select fullfilepath from damasset WHERE folder = $1 AND resourcemainid = $2`
+	rows, err := db.Query(sql, )
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			printMessage("wipRemoveHandler() ERROR:", err.Code.Name())
+			logMessage("wipRemoveHandler() couldn't SELECT from damasset :"+err.Code.Name(), "", "ERROR")
+		}
+		return 
+	}
+	
+	defer rows.Close()
+		for rows.Next() {
+			err = rows.Scan(
+			&theFileToDelete,
+		)
+	}
+
+	os.Remove( theFileToDelete )
+	
+
 	sqlStatement := `
 		DELETE FROM public.damasset WHERE folder = $1 AND resourcemainid = $2`
 
-	_, err := db.Exec(sqlStatement, theFolder, theTemplateID)
+	_, err = db.Exec(sqlStatement, theFolder, theTemplateID)
 	if err, ok := err.(*pq.Error); ok {
 		printMessage("[DCC] pq ERROR:", err.Code.Name())
 		logMessage("wipRemoveHandler() couldn't DELETE from damasset :"+err.Code.Name(), theFolder, "ERROR")
