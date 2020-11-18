@@ -346,6 +346,8 @@ func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
+	fullfilepath = strings.ReplaceAll(fullfilepath, "\\", "/")
+
 	logMessage( "wipRemoveHandler trying to remove " + fullfilepath, theFolder, "DEBUG" )
 	os.Remove( fullfilepath )
 	
