@@ -324,7 +324,7 @@ func readyHandler(w http.ResponseWriter, r *http.Request) {
 func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	theFolder := r.FormValue("theFolder")
 	theTemplateID := r.FormValue("theTemplateID")
-	theFileToDelete := ""
+	fullfilepath := ""
 
 	//theFilePath := theFolder + "\\" + theTemplateName
 	//theHash := ""
@@ -342,11 +342,12 @@ func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 		for rows.Next() {
 			err = rows.Scan(
-			&theFileToDelete,
+			&fullfilepath,
 		)
 	}
 
-	os.Remove( theFileToDelete )
+	logMessage( "wipRemoveHandler trying to remove " + fullfilepath, theFolder, "DEBUG" )
+	os.Remove( fullfilepath )
 	
 
 	sqlStatement := `
