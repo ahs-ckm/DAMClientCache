@@ -525,6 +525,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			queryTemplateByID(w, sTemplateID)
 		}
 
+
+		if strings.Contains(r.URL.Path, "change_status") {
+			params := strings.Split(r.RequestURI, ",")
+
+			if len(params) < 1 {
+				return
+			}
+			var sTemplateID = params[1]
+			queryChangeStatus(w, sTemplateID)
+		}
+
+
 	case "POST":
 		if err := r.ParseForm(); err != nil {
 			fmt.Fprintf(w, "ParseForm() err: %v", err)
@@ -548,6 +560,40 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
+
+
+func queryChangeStatus(w http.ResponseWriter, sTemplateID string) {
+
+
+	var active = false
+	var uploading = false
+	var stateReady = false
+
+	sql := `select active, state_ready, uploading from change where jirakey = $1`
+	rows, err := db.Query(sql, sTemplateID)
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			printMessage("[DCC] pq ERROR:", err.Code.Name())
+			logMessage("queryChangeStatus() couldn't SELECT from mirrorstate :"+err.Code.Name(), "", "ERROR")
+		}
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(
+			&active,
+			&stateReady,
+			&uploading,
+		)
+	}
+
+	var json = fmt.Sprintf(`{"active": %t,"uploading": %t,"ready" : %t}`, active, uploading, stateReady )	
+
+	logMessage("queryChangeStatus() returning json : "+json, "", "INFO")
+
+	w.Write([]byte(json))
+
 }
 
 func queryTemplateByID(w http.ResponseWriter, sTemplateID string) {
