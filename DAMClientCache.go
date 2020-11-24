@@ -293,6 +293,44 @@ func createArchive(ticketdir string) string {
 	return output
 }
 
+func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
+
+	theTicket := r.FormValue("theTicket")
+	theFolder := ""
+
+	sql := `select id from damfolder where jirakey = ''`
+	rows, err := db.Query(sql, )
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			printMessage("[DCC] pq ERROR:", err.Code.Name())
+			logMessage("linkTicketHandler() couldn't SELECT from damfolder :"+err.Code.Name(), "", "ERROR")
+			http.Error(w, "linkTicketHandler() couldn't SELECT from damfolder :"+err.Code.Name(), http.StatusNotModified)			
+		}
+		return 
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan( // just get the first row
+			&theFolder,
+		)
+		break
+	}
+
+
+	sqlStatement := `
+		update damfolder set jirakey = $1 where folder = $2`
+
+	_, err = db.Exec(sqlStatement, theTicket, theFolder)
+	if err, ok := err.(*pq.Error); ok {
+		printMessage("[DCC] pq ERROR:", err.Code.Name())
+		logMessage("linkTicketHandler() couldn't UPDATE damfolder :"+err.Code.Name(), theFolder, "ERROR")
+		http.Error(w, "linkTicketHandler() couldn't UPDATE damfolder :"+err.Code.Name(), http.StatusNotModified)
+		return
+	}
+	logMessage("linkTicketHandler() : returning folder : " + theFolder, "", "INFO")
+	w.Write([]byte( theFolder) );
+}
+
 func readyHandler(w http.ResponseWriter, r *http.Request) {
 
 	theState := r.FormValue("theState")
@@ -558,6 +596,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/ready") {
 			readyHandler(w, r)
 		}
+
+		if strings.Contains(r.URL.Path, "/linkTicket") {
+			linkTicketHandler(w, r)
+		}
+
+		
 
 	}
 }
