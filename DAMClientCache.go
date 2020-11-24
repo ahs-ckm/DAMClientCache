@@ -298,7 +298,7 @@ func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
 	theTicket := r.FormValue("theTicket")
 	theFolder := ""
 
-	sql := `select id from damfolder where jirakey = ''`
+	sql := `select folder from damfolder where jirakey = ''`
 	rows, err := db.Query(sql, )
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
