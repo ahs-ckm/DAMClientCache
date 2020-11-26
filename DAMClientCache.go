@@ -296,6 +296,10 @@ func createArchive(ticketdir string) string {
 func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
 
 	theTicket := r.FormValue("theTicket")
+	theDescription  := r.FormValue("theDescription")
+	theLead := r.FormValue("theLead")
+	theAssignee := r.FormValue("theAssignee")
+
 	theFolder := ""
 
 	sql := `select folder from damfolder where jirakey = ''`
@@ -316,15 +320,27 @@ func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
 		break
 	}
 
-
 	sqlStatement := `
-		update damfolder set jirakey = $1 where folder = $2`
+		insert into change damfolder set jirakey = $1 where folder = $2`
 
 	_, err = db.Exec(sqlStatement, theTicket, theFolder)
 	if err, ok := err.(*pq.Error); ok {
 		printMessage("[DCC] pq ERROR:", err.Code.Name())
 		logMessage("linkTicketHandler() couldn't UPDATE damfolder :"+err.Code.Name(), theFolder, "ERROR")
 		http.Error(w, "linkTicketHandler() couldn't UPDATE damfolder :"+err.Code.Name(), http.StatusNotModified)
+		return
+	}
+	
+	sqlStatement = `
+	INSERT INTO public."change"
+        (jirakey, folder, description, "lead", jiraassignee, targetstartdate, targetrepositoryenddate, targetenddate, percentagecomplete, active, implementationnotes, state_ready, uploading)
+	VALUES($1, $2, $3, $4, $5, null, null, null, '', true, '', false, false);`
+
+	_, err = db.Exec(sqlStatement, theTicket, theFolder, theDescription, theLead, theAssignee);
+	if err, ok := err.(*pq.Error); ok {
+		printMessage("[DCC] pq ERROR:", err.Code.Name())
+		logMessage("linkTicketHandler() couldn't UPDATE change :"+err.Code.Name(), theFolder, "ERROR")
+		http.Error(w, "linkTicketHandler() couldn't UPDATE change :"+err.Code.Name(), http.StatusNotModified)
 		return
 	}
 	logMessage("linkTicketHandler() : returning folder : " + theFolder, "", "INFO")
