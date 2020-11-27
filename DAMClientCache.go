@@ -321,7 +321,7 @@ func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sqlStatement := `
-		update change damfolder set jirakey = $1 where folder = $2`
+		update damfolder set jirakey = $1 where folder = $2`
 
 	_, err = db.Exec(sqlStatement, theTicket, theFolder)
 	if err, ok := err.(*pq.Error); ok {
