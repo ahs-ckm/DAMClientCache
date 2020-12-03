@@ -1,5 +1,5 @@
 {
-	"DBhost":     			"192.168.1.229",
+	"DBhost":     			"192.168.1.22",
 	"DBusr":      			"postgres",
 	"DBpw":       			"4h9OAtjWVL7k",
 	"DBPort":     			"5432",

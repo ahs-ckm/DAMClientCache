@@ -375,6 +375,8 @@ func readyHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+
+
 func wipRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	theFolder := r.FormValue("theFolder")
 	theTemplateID := r.FormValue("theTemplateID")
@@ -441,6 +443,30 @@ func wipHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "WIPHandler() couldn't INSERT into damasset :"+err.Code.Name(), http.StatusNotModified)
 		return
 	}
+
+}
+
+func removeTicket(w http.ResponseWriter, r *http.Request) {
+
+	params := strings.Split(r.RequestURI, ",")
+
+	if len(params) < 1 {
+		return
+	}
+
+	var sTemplateID =  params[1]
+	
+	sql := `select null from closticket($1)`
+	rows, err := db.Query(sql, sTemplateID)
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			printMessage("[DCC] pq ERROR:", err.Code.Name())
+			logMessage("removeTicket() couldn't SELECT from closticket :"+err.Code.Name(), "", "ERROR")
+			http.Error(w, "removeTicket() couldn't SELECT from closticket :"+err.Code.Name(), http.StatusNotModified)			
+		}
+		return
+	}
+	defer rows.Close()
 
 }
 
@@ -554,12 +580,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			buildAndSendSupport(w, r)
 		}
 
-		if strings.Contains(r.URL.Path, "remove") {
-			params := strings.Split(r.RequestURI, ",")
-
-			if len(params) < 1 {
-				return
-			}
+		if strings.Contains(r.URL.Path, "removeTicket") {
+			removeTicket(w, r)			
 
 			//fileToParse, err := url.QueryUnescape(params[1])
 			// if err != nil {
