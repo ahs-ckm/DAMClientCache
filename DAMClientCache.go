@@ -456,13 +456,13 @@ func removeTicket(w http.ResponseWriter, r *http.Request) {
 
 	var sTemplateID =  params[1]
 	
-	sql := `select null from closticket($1)`
+	sql := `select null from closeticket($1)`
 	rows, err := db.Query(sql, sTemplateID)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			printMessage("[DCC] pq ERROR:", err.Code.Name())
-			logMessage("removeTicket() couldn't SELECT from closticket :"+err.Code.Name(), "", "ERROR")
-			http.Error(w, "removeTicket() couldn't SELECT from closticket :"+err.Code.Name(), http.StatusNotModified)			
+			logMessage("removeTicket() couldn't SELECT from closeticket :"+err.Code.Name(), "", "ERROR")
+			http.Error(w, "removeTicket() couldn't SELECT from closeticket :"+err.Code.Name(), http.StatusNotModified)			
 		}
 		return
 	}
