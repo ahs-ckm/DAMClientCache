@@ -455,6 +455,7 @@ func removeTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var sTemplateID =  params[1]
+	var sFolder = params[2]
 	
 	sql := `select null from closeticket($1)`
 	rows, err := db.Query(sql, sTemplateID)
@@ -467,6 +468,27 @@ func removeTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
+	
+	theFilePath := sessionConfig.ChangesetPath + "\\" + sFolder
+
+	err = filepath.Walk(theFilePath,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+		
+			os.Remove(path)
+			//	fmt.Println(path, info.Size())
+			return nil			
+	})
+
+	if err != nil {
+		printMessage("[DCC] Problems deleting files from folder :", err.Error())
+		logMessage("removeTicket() Problems deleting files from folder :"+ err.Error(), "", "ERROR")
+		http.Error(w, "removeTicket() Problems deleting files from folder :" + err.Error(), http.StatusNotModified)			
+}
+
+
 
 }
 
