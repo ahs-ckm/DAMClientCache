@@ -476,8 +476,10 @@ func removeTicket(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return err
 			}
-		
-			os.Remove(path)
+			if !info.IsDir() {
+				os.Remove(path)
+			}
+
 			//	fmt.Println(path, info.Size())
 			return nil			
 	})
