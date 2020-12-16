@@ -469,7 +469,7 @@ func removeTicket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 	
-	theFilePath := sessionConfig.ChangesetPath + "\\" + sFolder
+	theFilePath := sessionConfig.ChangesetPath + "/" + sFolder
 
 	err = filepath.Walk(theFilePath,
 		func(path string, info os.FileInfo, err error) error {
