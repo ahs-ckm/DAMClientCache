@@ -309,6 +309,8 @@ func reviewDocumentHander(w http.ResponseWriter, r *http.Request) {
 
 
 	filename := fmt.Sprintf("%s/%s-%s-%d.html", sessionConfig.DocReviewTargetDir, docname, ticket, uid)
+	logMessage("[DCC] reviewDocumentHander(): Trying to create "+filename, ticket, "INFO")
+	
 	file, err := os.Create(filename)
 
 	if err != nil {
