@@ -9,5 +9,6 @@
 	"WorkingFolderPath":	"downloads/whereused",
 	"ListenPort":			"10091",
 	"DebugLogging":			"Yes",
-	"CachingEnabled":		"Yes"
+	"CachingEnabled":		"Yes",
+	"DocReviewTargetDir": 	"/media/Testing/documentreview_test"
 }

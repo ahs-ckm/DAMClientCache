@@ -49,6 +49,7 @@ type configuration struct {
 	MirrorCkmPath     string
 	CachingEnabled    string
 	DebugLogging      string
+	DocReviewTargetDir string
 }
 
 func printMessage(a ...interface{}) {
@@ -291,6 +292,40 @@ func createArchive(ticketdir string) string {
 	}
 	fmt.Println("Zipped File:", output)
 	return output
+}
+
+
+func reviewDocumentHander(w http.ResponseWriter, r *http.Request) { 
+	
+
+	params := strings.Split(r.RequestURI, ",")
+
+	if len(params) < 1 {
+		return
+	}
+	ticket := params[1]
+	docname := params[2]
+	uid := nowAsUnixMilli()
+
+
+	filename := fmt.Sprintf("%s/%s-%s-%d.html", sessionConfig.DocReviewTargetDir, docname, ticket, uid)
+	file, err := os.Create(filename)
+
+	if err != nil {
+		logMessage(err.Error(), ticket, "ERROR")
+	}
+
+	n, err := io.Copy(file, r.Body)
+
+	if err != nil {
+		logMessage("[DCC] reviewDocumentHander(): "+err.Error(), ticket, "ERROR")
+	}
+
+	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
+
+	if err != nil {
+		logMessage(err.Error(), ticket, "ERROR")
+	}
 }
 
 func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
@@ -662,6 +697,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/linkTicket") {
 			linkTicketHandler(w, r)
 		}
+
+		if strings.Contains(r.URL.Path, "/ReviewDocument") {
+			reviewDocumentHander(w, r)
+		}
+
 
 		
 
