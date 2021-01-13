@@ -307,7 +307,7 @@ func reviewDocumentHander(w http.ResponseWriter, r *http.Request) {
 	docname := params[2]
 
 
-	filename := fmt.Sprintf("%s/%s.html", sessionConfig.DocReviewTargetDir, docname)
+	filename := fmt.Sprintf("%s/%s", sessionConfig.DocReviewTargetDir, docname)
 	logMessage("[DCC] reviewDocumentHander(): Trying to create "+filename, ticket, "INFO")
 
 	file, err := os.Create(filename)
