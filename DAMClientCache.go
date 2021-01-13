@@ -21,6 +21,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"net/url"
 
 	"github.com/Tkanos/gonfig" // config management support
 	"github.com/lib/pq"        // golang postgres db driver
@@ -304,8 +305,12 @@ func reviewDocumentHander(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ticket := params[1]
-	docname := params[2]
+	docname, err := url.QueryUnescape(params[2])
 
+	if err != nil {
+		logMessage("[DCC] reviewDocumentHander(): problems decoding document name param - " + err.Error(), ticket, "ERROR")
+	}
+	
 
 	filename := fmt.Sprintf("%s/%s", sessionConfig.DocReviewTargetDir, docname)
 	logMessage("[DCC] reviewDocumentHander(): Trying to create "+filename, ticket, "INFO")
