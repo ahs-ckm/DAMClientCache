@@ -305,12 +305,11 @@ func reviewDocumentHander(w http.ResponseWriter, r *http.Request) {
 	}
 	ticket := params[1]
 	docname := params[2]
-	uid := nowAsUnixMilli()
 
 
-	filename := fmt.Sprintf("%s/%s-%s-%d.html", sessionConfig.DocReviewTargetDir, docname, ticket, uid)
+	filename := fmt.Sprintf("%s/%s.html", sessionConfig.DocReviewTargetDir, docname)
 	logMessage("[DCC] reviewDocumentHander(): Trying to create "+filename, ticket, "INFO")
-	
+
 	file, err := os.Create(filename)
 
 	if err != nil {
@@ -325,9 +324,9 @@ func reviewDocumentHander(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
 
-	if err != nil {
-		logMessage(err.Error(), ticket, "ERROR")
-	}
+	// if err != nil {
+	// 	logMessage(err.Error(), ticket, "ERROR")
+	// }
 }
 
 func linkTicketHandler(w http.ResponseWriter, r *http.Request) {
